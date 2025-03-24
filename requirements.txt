@@ -4,5 +4,5 @@ faiss-cpu
 numpy
 langchain-google-genai
 huggingface_hub
-
+gunicorn
 
