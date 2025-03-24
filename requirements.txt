@@ -1,7 +1,8 @@
 flask
 flask-cors
-sentence-transformers
 faiss-cpu
 numpy
 langchain-google-genai
+huggingface_hub
+
 
