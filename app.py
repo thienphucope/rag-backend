@@ -81,14 +81,12 @@ def initialize_index(username):
     all_texts = doc_texts.copy()
     all_embeddings = []
 
-    # Tải embeddings từ documents_collection (dữ liệu tĩnh chung)
     if documents_collection.count_documents({}) > 0:
         stored_docs = list(documents_collection.find({}))
         if stored_docs:
             all_embeddings = [np.array(doc["embedding"]) for doc in stored_docs]
             all_texts = [doc["text"] for doc in stored_docs]
     
-    # Nếu chưa có embeddings cho doc_texts hoặc không khớp, tạo mới
     if len(all_embeddings) != len(doc_texts):
         documents_collection.drop()
         all_embeddings = []
@@ -100,7 +98,6 @@ def initialize_index(username):
             })
             all_embeddings.append(embedding)
 
-    # Tải embeddings từ collection của user (nếu có)
     user_collection = db[username]
     convo_docs = list(user_collection.find({"embedding": {"$exists": True}}))
     for convo in convo_docs:
@@ -108,11 +105,9 @@ def initialize_index(username):
         all_embeddings.append(np.array(convo["embedding"]))
         all_texts.append(summary_sentence)
 
-    # Cập nhật biến toàn cục
     doc_texts_current = all_texts
     doc_embeddings = np.array(all_embeddings)
 
-    # Khởi tạo FAISS index
     dimension = doc_embeddings.shape[1]
     doc_index = faiss.IndexFlatL2(dimension)
     doc_index.add(doc_embeddings)
@@ -126,9 +121,9 @@ def summarize_and_store(username):
     user_collection = db[username]
     
     conversation_text = "\n".join([
-    m['parts'][0]['text'] for m in convo 
-    if m['role'] == 'user' and not re.search(r'\b(what|how|where|when|why|who|which)\b|\?', m['parts'][0]['text'], re.IGNORECASE)
-        ])
+        m['parts'][0]['text'] for m in convo 
+        if m['role'] == 'user' and not re.search(r'\b(what|how|where|when|why|who|which)\b|\?', m['parts'][0]['text'], re.IGNORECASE)
+    ])
 
     prompt = f"""
     "Summarize the information about user in a '{username}, attribute : value' format in a single paragraph separated with a semicolon ';' . If it is {username} question, ignore and don't summarize it. Capture separated key facts. Follow the format, do not use asterisks, all in lowercase"
@@ -216,7 +211,7 @@ def generate_response(username, query):
     sessions[username]["last_active"] = datetime.now()
     return response
 
-# API endpoint
+# API endpoint POST /rag
 @app.route('/rag', methods=['POST'])
 def rag_endpoint():
     global doc_index
@@ -242,10 +237,19 @@ def rag_endpoint():
             "query": query,
             "response": response,
             "retrieved_docs": retrieve_docs(query, top_k=1),
-            "session_id": username  # Trả về username thay vì session_id
+            "session_id": username
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# API endpoint GET /status
+@app.route('/status', methods=['GET'])
+def status_endpoint():
+    return jsonify({
+        "status": "Server is running",
+        "current_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "active_sessions": len(sessions)
+    })
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
