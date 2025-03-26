@@ -14,7 +14,7 @@ import atexit
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 HF_API_TOKEN = os.environ["HF_API_TOKEN"]
 MONGO_URI = os.environ["MONGO_URI"]
-PORT = os.environ.get("PORT", "5000")  # Mặc định là 5000 nếu không có PORT
+
 
 # Khởi tạo Flask app và bật CORS
 app = Flask(__name__)
@@ -253,4 +253,5 @@ def rag_endpoint():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(PORT))
+    port = int(os.environ.get("PORT", 5000))  # Lấy PORT từ env, mặc định 5000 nếu không có
+    app.run(host="0.0.0.0", port=port)       # Bind 0.0.0.0 để Render truy cập được
