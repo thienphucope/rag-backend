@@ -166,7 +166,7 @@ def check_timeout():
             now = datetime.now()
             
             for username in list(sessions.keys()):
-                print(f"{sessions[username]["last_active"]} \n {now}")
+                print(f"{sessions[username]['last_active']} \n {now}")
                 if now - sessions[username]["last_active"] > timedelta(minutes=3):
                     summarize_and_store(username)
             threading.Event().wait(60)
