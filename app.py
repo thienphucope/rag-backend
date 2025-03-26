@@ -9,6 +9,7 @@ from pymongo import MongoClient
 from datetime import datetime, timedelta
 import atexit
 import re
+import threading 
 
 # Lấy biến môi trường
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
