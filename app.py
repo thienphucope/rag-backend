@@ -125,10 +125,8 @@ def summarize_and_store(username):
     ])
 
     prompt = f"""
-    "Summarize the information about user in a '{username}, attribute : value' format in a single paragraph separated with a semicolon ';' . Capture separated key facts. Follow the format, do not use asterisks, all in lowercase"
-    
-    Example: {username},height = 20 ; {username}, age, how old, birth year = 20
-
+    "Summarize the information about user in a '{username}, attribute, synonyms : value' format in a single paragraph separated with a semicolon ';'. For each attribute, list additional synonyms that may be used to refer to that attribute (e.g., for age: age, old, how old, birth year). Capture separated key facts. Follow the format, do not use asterisks, all in lowercase."
+   
     Conversation history:
     {conversation_text}
     """
