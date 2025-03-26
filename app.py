@@ -9,6 +9,7 @@ from pymongo import MongoClient
 from datetime import datetime, timedelta
 import threading
 import atexit
+import re
 
 # Lấy biến môi trường
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
@@ -124,10 +125,13 @@ def summarize_and_store(username):
     convo = sessions[username]["convo"]
     user_collection = db[username]
     
-    conversation_text = "\n".join([m['parts'][0]['text'] for m in convo if m['role'] == 'user'])
+    conversation_text = "\n".join([
+    m['parts'][0]['text'] for m in convo 
+    if m['role'] == 'user' and not re.search(r'\b(what|how|where|when|why|who|which)\b|\?', m['parts'][0]['text'], re.IGNORECASE)
+        ])
 
     prompt = f"""
-    "Summarize the information about user in a '{username}, attribute : value' format in a single paragraph separated with a semicolon ';' . Capture separated key facts. Follow the format, do not use asterisks, all in lowercase"
+    "Summarize the information about user in a '{username}, attribute : value' format in a single paragraph separated with a semicolon ';' . If it is {username} question, ignore and don't summarize it. Capture separated key facts. Follow the format, do not use asterisks, all in lowercase"
     
     Example: Ope,name = Ope Watson; ope, age, how old, birth year = 20
 
@@ -187,24 +191,24 @@ def generate_response(username, query):
     if username not in sessions:
         return "Session expired, please enter your name again!"
     convo = sessions[username]["convo"]
-    retrieved_docs = retrieve_docs(query, top_k=1)
+    retrieved_docs = retrieve_docs(query, top_k=3)
     context = "\n".join(retrieved_docs)
     
     convo.append({"role": "user", "parts": [{"text": query}]})
     
-    prompt = "Below is the conversation history between the User and Ope Watson (you):\n"
+    prompt = f"Below is the conversation history between the {username} and Ope Watson (you):\n"
     for message in convo:
         role = message["role"]
         text = message["parts"][0]["text"]
         if role == "user":
-            prompt += f"User: {text}\n"
+            prompt += f"{username}: {text}\n"
         elif role == "assistant":
             prompt += f"Ope Watson: {text}\n"
         elif role == "system":
             prompt += f"system: {text}\n"
     prompt += (
-        f"Additional information about Ope Watson consider it as his memory: {context}\n"
-        f"Now, respond to the User's question: {query}"
+        f"Additional information about Ope Watson consider it as his memory about him and {username}. Ignore if this context is irrelevant: {context}\n"
+        f"Now, respond to the {username}'s question: {query}"
     )
 
     response = genai_model.invoke(prompt).content
