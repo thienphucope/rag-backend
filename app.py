@@ -7,7 +7,6 @@ import os
 from huggingface_hub import InferenceClient
 from pymongo import MongoClient
 from datetime import datetime, timedelta
-import threading
 import atexit
 import re
 
@@ -32,27 +31,26 @@ client = InferenceClient(api_key=HF_API_TOKEN)
 
 # Dữ liệu mẫu
 doc_texts = [
-"your name, who, called = Ope Watson",  
-"age, how old, birth year = 20",  
-"where, location, country = Hue, Vietnam",  
-"hobby, interests, like to do = sing, code, talk, photograph",  
-"job, work, profession, study = Computer Engineering",  
-"university, school, education = HCMUT",  
-"favorite food, like to eat = Bun dau mam tom, Banh deo, Che Hue",  
-"favorite color, color you like = yellow and blue",  
-"language, speak, talk = English, Japanese, Vietnamese",  
-"pet, animal, have pet = dont have",  
-"music, favorite song, like to listen = Tan Gai 101, Cat keo tren Lenin, Em gai, FLy me to the moon",  
-"book, favorite book, like to read = The Story Of A Seagull And The Cat Who Taught Her To Fly Book by Luis Sepúlveda",  
-"movie, film, favorite movie = Princess of Mononoke, Quintessential Quintuplets",  
-"anime, cartoon, favorite anime = Conan, Doraemon, ",  
-"goal, dream, future plan = inventor",  
-"relationship, girlfriend, love life = have 100 girlfriends",  
-"programming, coding, language you use = python, C++, JS",  
-"ai, machine learning, neural network = learning",  
-"exercise, workout, fitness = Callisthenic",  
-"game, video game, play = Minecraft, Brawlstar, AOV",  
-
+    "your name, who, called = Ope Watson",  
+    "age, how old, birth year = 20",  
+    "where, location, country = Hue, Vietnam",  
+    "hobby, interests, like to do = sing, code, talk, photograph",  
+    "job, work, profession, study = Computer Engineering",  
+    "university, school, education = HCMUT",  
+    "favorite food, like to eat = Bun dau mam tom, Banh deo, Che Hue",  
+    "favorite color, color you like = yellow and blue",  
+    "language, speak, talk = English, Japanese, Vietnamese",  
+    "pet, animal, have pet = dont have",  
+    "music, favorite song, like to listen = Tan Gai 101, Cat keo tren Lenin, Em gai, FLy me to the moon",  
+    "book, favorite book, like to read = The Story Of A Seagull And The Cat Who Taught Her To Fly Book by Luis Sepúlveda",  
+    "movie, film, favorite movie = Princess of Mononoke, Quintessential Quintuplets",  
+    "anime, cartoon, favorite anime = Conan, Doraemon, ",  
+    "goal, dream, future plan = inventor",  
+    "relationship, girlfriend, love life = have 100 girlfriends",  
+    "programming, coding, language you use = python, C++, JS",  
+    "ai, machine learning, neural network = learning",  
+    "exercise, workout, fitness = Callisthenic",  
+    "game, video game, play = Minecraft, Brawlstar, AOV",  
 ]
 
 # Lưu trữ phiên trò chuyện tạm thời (dùng username làm key)
@@ -159,21 +157,24 @@ def save_all_sessions():
 
 atexit.register(save_all_sessions)
 
-# Check timeout
-def check_timeout():
-    while True:
-        if sessions:
-            now = datetime.now()
-            
-            for username in list(sessions.keys()):
-                print(f"{sessions[username]['last_active']} \n {now}")
-                if now - sessions[username]["last_active"] > timedelta(minutes=3):
-                    summarize_and_store(username)
-            threading.Event().wait(60)
-        else:
-            session_event.wait()
-
-threading.Thread(target=check_timeout, daemon=True).start()
+# API endpoint GET /summarize (mới)
+@app.route('/summarize', methods=['GET'])
+def summarize_endpoint():
+    if not sessions:
+        return jsonify({"message": "No active sessions to summarize"}), 200
+    
+    now = datetime.now()
+    summarized_users = []
+    for username in list(sessions.keys()):
+        summarize_and_store(username)
+        summarized_users.append(username)
+    
+    print(f"Summarized all sessions at {now}")
+    return jsonify({
+        "message": f"Summarized {len(summarized_users)} sessions",
+        "summarized_users": summarized_users,
+        "timestamp": now.strftime('%Y-%m-%d %H:%M:%S')
+    }), 200
 
 # Hàm truy xuất tài liệu
 def retrieve_docs(query, top_k=1):
