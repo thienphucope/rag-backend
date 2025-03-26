@@ -134,7 +134,7 @@ def summarize_and_store(session_id):
     username = sessions[session_id]["username"]
     conversation_text = "\n".join([f"{m['role']}: {m['parts'][0]['text']}" for m in convo])
     prompt = f"""
-    "Summarize the conversation between Ope Watson and {username} in a short single paragraph, capturing only key facts such as appointments, promises, user details, or major decisions. Format each fact as 'Ope Watson notes that {username}...' and exclude unnecessary details. Respond without any additional commentary."
+    "Summarize the conversation between Ope Watson and {username} as Ope Watson's memory in a short single paragraph, capturing only key facts such as appointments, promises, user details, or major decisions. Format each fact as 'Ope Watson notes that {username}...' and exclude unnecessary details. Respond without any additional commentary."
 
     Conversation history:
     {conversation_text}
