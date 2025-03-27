@@ -173,8 +173,8 @@ def summarize_endpoint():
     }), 200
 
 # Hàm truy xuất tài liệu
-def retrieve_docs(username, query, top_k=1):
-    query_embedding = get_embeddings([query])
+def retrieve_docs(username, query_embedding, top_k=1):
+    
     
     ope_docs = []
     user_docs = []
@@ -201,7 +201,8 @@ def generate_response(username, query):
     convo = sessions[username]["convo"]
 
     # Lấy hoặc cập nhật cache
-    ope_docs, user_docs = retrieve_docs(username, query, top_k=1)
+    query_embedding = get_embeddings([query]) 
+    ope_docs, user_docs = retrieve_docs(username, query_embedding, top_k=1)
     if "ope_cache" not in sessions[username]:
         sessions[username]["ope_cache"] = []
     if "user_cache" not in sessions[username]:
@@ -244,7 +245,7 @@ def generate_response(username, query):
     response = genai_model.invoke(prompt).content
     convo.append({"role": "assistant", "parts": [{"text": response}]})
     sessions[username]["last_active"] = datetime.now()
-    return response
+    return response, query_embedding
 
 # API endpoint POST /rag
 @app.route('/rag', methods=['POST'])
@@ -275,8 +276,8 @@ def rag_endpoint():
         session_event.set()
 
     try:
-        response = generate_response(username, query)
-        ope_docs, user_docs = retrieve_docs(username, query, top_k=1)
+        response, query_embedding = generate_response(username, query)
+        ope_docs, user_docs = retrieve_docs(username, query_embedding, top_k=1)
         return jsonify({
             "query": query,
             "response": response,
