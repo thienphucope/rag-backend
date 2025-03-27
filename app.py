@@ -226,7 +226,7 @@ def generate_response(username, query):
     
     convo.append({"role": "user", "parts": [{"text": query}]})
     
-    prompt = f"Below is the conversation history between {username} and Ope Watson (yourself):\n"
+    prompt = f"Below is the system prompt that you have to follow strictly and the conversation history between {username} and Ope Watson (yourself):\n"
     for message in convo:
         role = message["role"]
         text = message["parts"][0]["text"]
