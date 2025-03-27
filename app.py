@@ -32,7 +32,7 @@ genai_model = ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=GE
 client = InferenceClient(api_key=HF_API_TOKEN)
 
 # Lưu trữ phiên trò chuyện tạm thời (dùng username làm key)
-sessions = {}  # {username: {"convo": list, "last_active": datetime, "username": str, "faiss": {"index": faiss.Index, "embeddings": np.array, "texts": list}}}
+sessions = {}  # {username: {"convo": list, "last_active": datetime, "username": str, "faiss": {"index": faiss.Index, "embeddings": np.array, "texts": list}, "ope_cache": list, "user_cache": list}}
 session_event = threading.Event()
 
 # Biến toàn cục cho FAISS của Ope Watson
@@ -40,27 +40,29 @@ doc_index = None
 doc_embeddings = None
 doc_texts_current = None
 
-# Hàm lấy embeddings
+# Hàm lấy embeddings với debug
 def get_embeddings(texts):
+    print(f"DEBUG: Calling get_embeddings with texts: {texts}")
     try:
         result = client.feature_extraction(
             texts,
             model="sentence-transformers/all-MiniLM-L6-v2"
         )
-        return np.array(result)
+        embeddings = np.array(result)
+        print(f"DEBUG: Embeddings generated successfully, shape: {embeddings.shape}")
+        return embeddings
     except Exception as e:
+        print(f"DEBUG: Error in get_embeddings: {str(e)}")
         raise Exception(f"Hugging Face API error: {str(e)}")
 
 # Khởi tạo FAISS index
 def initialize_index(username):
     global doc_index, doc_embeddings, doc_texts_current
-    # Lấy dữ liệu từ bảng ope_watson, sắp xếp theo ID
     ope_docs = list(ope_watson_collection.find({}).sort("id", 1))
     all_doc_texts = [doc["text"] for doc in ope_docs]
     all_doc_ids = [doc["id"] for doc in ope_docs]
     all_doc_embeddings = []
 
-    # Lấy dữ liệu từ documents_collection
     stored_docs = list(documents_collection.find({}).sort("id", 1))
     stored_dict = {}
     
@@ -72,7 +74,6 @@ def initialize_index(username):
     else:
         stored_dict = {doc["id"]: {"text": doc["text"], "embedding": doc["embedding"]} for doc in stored_docs}
 
-    # So sánh và cập nhật embedding nếu cần
     needs_recompute = False
     for ope_doc in ope_docs:
         doc_id = ope_doc["id"]
@@ -118,7 +119,6 @@ def initialize_index(username):
     doc_index = faiss.IndexFlatL2(dimension)
     doc_index.add(doc_embeddings)
 
-    # Khởi tạo FAISS index cho user và lưu vào sessions
     user_collection = db[username]
     convo_docs = list(user_collection.find({"embedding": {"$exists": True}}))
     all_user_texts = [convo["summary_sentence"] for convo in convo_docs]
@@ -136,37 +136,8 @@ def initialize_index(username):
     else:
         sessions[username]["faiss"] = None
 
-# Hàm tóm tắt và lưu DB
+# Hàm tóm tắt và lưu DB (giữ nguyên phần comment)
 def summarize_and_store(username):
-    # if username not in sessions:
-    #     return
-    # convo = sessions[username]["convo"]
-    # user_collection = db[username]
-    
-    # conversation_text = "\n".join([
-    #     m['parts'][0]['text'] for m in convo 
-    #     if m['role'] == 'user' and not re.search(r'\b(what|how|where|when|why|who|which)\b|\?', m['parts'][0]['text'], re.IGNORECASE)
-    # ])
-
-    # prompt = f"""
-    # "Summarize the information about user in a '{username}, attribute, synonyms : value' format in a single paragraph separated with a semicolon ';'. For each attribute, list additional synonyms that may be used to refer to that attribute (e.g., {username}, age, old, how old, birth year = 20; {username}, name, called, who = {username}). Capture separated key facts. Follow the format, do not use asterisks, all in lowercase."
-   
-    # Conversation history:
-    # {conversation_text}
-    # """
-
-    # summary = genai_model.invoke(prompt).content
-    # print(f"summary {username}: {summary}")
-    # summary_sentences = [s.strip() for s in summary.split(";") if s.strip()]
-    # for sentence in summary_sentences:
-    #     embedding = get_embeddings([sentence])[0]
-    #     user_collection.insert_one({
-    #         "summary_sentence": sentence,
-    #         "embedding": embedding.tolist(),
-    #         "timestamp": datetime.now()
-    #     })
-
-    # Xóa session của user (bao gồm FAISS index)
     del sessions[username]
     if not sessions:
         global doc_index, doc_embeddings, doc_texts_current
@@ -223,16 +194,35 @@ def retrieve_docs(username, query, top_k=1):
 
     return ope_docs, user_docs
 
-# Hàm sinh câu trả lời
+# Hàm sinh câu trả lời với cache
 def generate_response(username, query):
     if username not in sessions:
         return "Session expired, please enter your name again!"
     convo = sessions[username]["convo"]
+
+    # Lấy hoặc cập nhật cache
     ope_docs, user_docs = retrieve_docs(username, query, top_k=1)
-    ope_context = "\n".join(ope_docs)
-    user_context = "\n".join(user_docs)
-    print(f"Ope context: {ope_context}")
-    print(f"User context: {user_context}")
+    if "ope_cache" not in sessions[username]:
+        sessions[username]["ope_cache"] = []
+    if "user_cache" not in sessions[username]:
+        sessions[username]["user_cache"] = []
+    
+    # Thêm vào cache, giới hạn 3 phần tử
+    if ope_docs:
+        sessions[username]["ope_cache"].append(ope_docs[0])
+        if len(sessions[username]["ope_cache"]) > 3:
+            sessions[username]["ope_cache"].pop(0)
+    if user_docs:
+        sessions[username]["user_cache"].append(user_docs[0])
+        if len(sessions[username]["user_cache"]) > 3:
+            sessions[username]["user_cache"].pop(0)
+
+    # Sử dụng cache thay vì ope_docs và user_docs trực tiếp
+    ope_context = "\n".join(sessions[username]["ope_cache"])
+    user_context = "\n".join(sessions[username]["user_cache"])
+    print(f"Ope context from cache: {ope_context}\n")
+    print(f"{username} context from cache: {user_context}")
+    
     convo.append({"role": "user", "parts": [{"text": query}]})
     
     prompt = f"Below is the conversation history between {username} and Ope Watson (yourself):\n"
