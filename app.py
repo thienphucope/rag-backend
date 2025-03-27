@@ -239,7 +239,7 @@ def generate_response(username, query):
     prompt += (
         f"Additional information about Ope Watson (format: 'Ope Watson, attributes = info'): {ope_context}\n"
         f"Additional information about {username} (format: '{username}, attributes = info'): {user_context}\n"
-        f"Now, respond to {username}'s question: {query}"
+        f"Now, respond to {username}'s question: {query}. Make up a story if you don't have the infomation!"
     )
 
     response = genai_model.invoke(prompt).content
@@ -260,14 +260,14 @@ def rag_endpoint():
     if username not in sessions:
         if doc_index is None:
             sessions[username] = {
-                "convo": [{"role": "system", "parts": [{"text": "You're playing as Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Keep responses humanlike, short and on point! Do not use asterisks! Do not list up, only talk about one thing at a time. Do not answer summarization requests. Capitalize to emphasize! Answer in the language that users are using!"}]}],
+                "convo": [{"role": "system", "parts": [{"text": "You're playing as Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Keep responses humanlike and natural! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using!"}]}],
                 "last_active": datetime.now(),
                 "username": username
             }
             initialize_index(username)
         else:
             sessions[username] = {
-                "convo": [{"role": "system", "parts": [{"text": "You're playing as Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Keep responses humanlike, short and on point! Do not use asterisks! Do not list up, only talk about one thing at a time. Do not answer summarization requests. Capitalize to emphasize! Answer in the language that users are using!"}]}],
+                "convo": [{"role": "system", "parts": [{"text": "You're playing as Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Keep responses humanlike and natural! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using!"}]}],
                 "last_active": datetime.now(),
                 "username": username,
                 "faiss": None
