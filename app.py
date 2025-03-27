@@ -245,7 +245,7 @@ def generate_response(username, query):
     response = genai_model.invoke(prompt).content
     convo.append({"role": "assistant", "parts": [{"text": response}]})
     sessions[username]["last_active"] = datetime.now()
-    return response, query_embedding
+    return response, ope_docs, user_docs
 
 # API endpoint POST /rag
 @app.route('/rag', methods=['POST'])
@@ -276,8 +276,8 @@ def rag_endpoint():
         session_event.set()
 
     try:
-        response, query_embedding = generate_response(username, query)
-        ope_docs, user_docs = retrieve_docs(username, query_embedding, top_k=1)
+        response, ope_docs, user_docs = generate_response(username, query)
+
         return jsonify({
             "query": query,
             "response": response,
