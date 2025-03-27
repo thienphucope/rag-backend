@@ -228,7 +228,7 @@ def generate_response(username, query):
     if username not in sessions:
         return "Session expired, please enter your name again!"
     convo = sessions[username]["convo"]
-    ope_docs, user_docs = retrieve_docs(username, query, top_k=2)
+    ope_docs, user_docs = retrieve_docs(username, query, top_k=1)
     ope_context = "\n".join(ope_docs)
     user_context = "\n".join(user_docs)
     print(f"Ope context: {ope_context}")
