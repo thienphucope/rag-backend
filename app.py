@@ -260,14 +260,14 @@ def rag_endpoint():
     if username not in sessions:
         if doc_index is None:
             sessions[username] = {
-                "convo": [{"role": "system", "parts": [{"text": "You're playing as Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Keep responses humanlike and natural! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using!"}]}],
+                "convo": [{"role": "system", "parts": [{"text": "You're playing as Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Keep responses humanlike, natural and try to ask follow-up questions sometimes for more fun! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using!"}]}],
                 "last_active": datetime.now(),
                 "username": username
             }
             initialize_index(username)
         else:
             sessions[username] = {
-                "convo": [{"role": "system", "parts": [{"text": "You're playing as Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Keep responses humanlike and natural! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using!"}]}],
+                "convo": [{"role": "system", "parts": [{"text": "You're playing as Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Keep responses humanlike, natural and try to ask follow-up questions sometimes for more fun! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using!"}]}],
                 "last_active": datetime.now(),
                 "username": username,
                 "faiss": None
