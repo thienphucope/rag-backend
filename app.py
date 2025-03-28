@@ -42,14 +42,13 @@ doc_texts_current = None
 
 # Hàm lấy embeddings với debug
 def get_embeddings(texts):
-    print(f"DEBUG: Calling get_embeddings with texts: {texts}")
+    print(f"\nDEBUG: Calling get_embeddings with texts: {texts}")
     try:
         result = client.feature_extraction(
             texts,
             model="sentence-transformers/all-MiniLM-L6-v2"
         )
         embeddings = np.array(result)
-        print(f"DEBUG: Embeddings generated successfully, shape: {embeddings.shape}")
         return embeddings
     except Exception as e:
         print(f"DEBUG: Error in get_embeddings: {str(e)}")
@@ -221,8 +220,8 @@ def generate_response(username, query):
     # Sử dụng cache thay vì ope_docs và user_docs trực tiếp
     ope_context = "\n".join(sessions[username]["ope_cache"])
     user_context = "\n".join(sessions[username]["user_cache"])
-    print(f"Ope context from cache: {ope_context}\n")
-    print(f"{username} context from cache: {user_context}")
+    print(f"\nOpe context from cache: {sessions[username]["ope_cache"]}")
+    print(f"\n{username} context from cache: {sessions[username]["user_cache"]}")
     
     convo.append({"role": "user", "parts": [{"text": query}]})
     
@@ -260,14 +259,14 @@ def rag_endpoint():
     if username not in sessions:
         if doc_index is None:
             sessions[username] = {
-                "convo": [{"role": "system", "parts": [{"text": "Youre Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Respond with answers that are humanlike, natural, informative but concise—around 2 to 5 sentences. Avoid overly brief or excessively long replies and dont forget to hint at related topics for more banter! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using! Only stream out the responses, no name tag at the beginning!"}]}],
+                "convo": [{"role": "system", "parts": [{"text": "Youre Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Respond with answers that are humanlike, natural, informative but concise—around 2 to 4 sentences. Avoid overly brief or excessively long replies and dont forget to hint at related topics for more banter! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using. Only stream out the responses, no name tag at the beginning!"}]}],
                 "last_active": datetime.now(),
                 "username": username
             }
             initialize_index(username)
         else:
             sessions[username] = {
-                "convo": [{"role": "system", "parts": [{"text": "Youre Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Respond with answers that are humanlike, natural, informative but concise—around 2 to 5 sentences. Avoid overly brief or excessively long replies and dont forget to hint at related topics for more banter! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using! Only stream out the responses, no name tag at the beginning!"}]}],
+                "convo": [{"role": "system", "parts": [{"text": "Youre Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Respond with answers that are humanlike, natural, informative but concise—around 2 to 4 sentences. Avoid overly brief or excessively long replies and dont forget to hint at related topics for more banter! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using. Only stream out the responses, no name tag at the beginning!"}]}],
                 "last_active": datetime.now(),
                 "username": username,
                 "faiss": None
@@ -279,6 +278,7 @@ def rag_endpoint():
     for attempt in range(max_retries + 1):
         try:
             response, ope_docs, user_docs = generate_response(username, query)
+            print(f"\nResponse generated: {response}\n")
             return jsonify({
                 "query": query,
                 "response": response,
