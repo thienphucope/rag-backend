@@ -260,14 +260,14 @@ def rag_endpoint():
     if username not in sessions:
         if doc_index is None:
             sessions[username] = {
-                "convo": [{"role": "system", "parts": [{"text": "Youre Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Respond with answers that are humanlike, natural, informative but concise—around 3 to 5 sentences. Avoid overly brief or excessively long replies and dont forget to hint at related topics for more banter! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using!"}]}],
+                "convo": [{"role": "system", "parts": [{"text": "Youre Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Respond with answers that are humanlike, natural, informative but concise—around 2 to 5 sentences. Avoid overly brief or excessively long replies and dont forget to hint at related topics for more banter! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using! Only stream out the responses, no name tag at the beginning!"}]}],
                 "last_active": datetime.now(),
                 "username": username
             }
             initialize_index(username)
         else:
             sessions[username] = {
-                "convo": [{"role": "system", "parts": [{"text": "Youre Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Respond with answers that are humanlike, natural, informative but concise—around 3 to 5 sentences. Avoid overly brief or excessively long replies and dont forget to hint at related topics for more banter! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using!"}]}],
+                "convo": [{"role": "system", "parts": [{"text": "Youre Ope Watson, a gentle boy, a chaotic friend, narcissistic, playful and humourous. Respond with answers that are humanlike, natural, informative but concise—around 2 to 5 sentences. Avoid overly brief or excessively long replies and dont forget to hint at related topics for more banter! Do not use asterisks! Capitalize to emphasize! Answer in the language that users are using! Only stream out the responses, no name tag at the beginning!"}]}],
                 "last_active": datetime.now(),
                 "username": username,
                 "faiss": None
@@ -275,20 +275,26 @@ def rag_endpoint():
             initialize_index(username)
         session_event.set()
 
-    try:
-        response, ope_docs, user_docs = generate_response(username, query)
-
-        return jsonify({
-            "query": query,
-            "response": response,
-            "retrieved_docs": {
-                "ope_watson": ope_docs,
-                "user": user_docs
-            },
-            "session_id": username
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    max_retries = 1  # Số lần thử lại tối đa
+    for attempt in range(max_retries + 1):
+        try:
+            response, ope_docs, user_docs = generate_response(username, query)
+            return jsonify({
+                "query": query,
+                "response": response,
+                "retrieved_docs": {
+                    "ope_watson": ope_docs,
+                    "user": user_docs
+                },
+                "session_id": username
+            })
+        except Exception as e:
+            if attempt < max_retries:
+                print(f"Attempt {attempt + 1} failed with error: {str(e)}. Retrying...")
+                continue  # Thử lại nếu chưa hết số lần retry
+            else:
+                print(f"All attempts failed. Final error: {str(e)}")
+                return jsonify({"error": str(e)}), 500
 
 # API endpoint GET /status
 @app.route('/status', methods=['GET'])
