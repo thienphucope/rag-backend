@@ -246,8 +246,8 @@ def generate_response(username, query):
     # Sử dụng cache thay vì ope_docs và user_docs trực tiếp
     ope_context = "\n".join(sessions[username]["ope_cache"])
     user_context = "\n".join(sessions[username]["user_cache"])
-    print(f"\nOpe context from cache: {sessions[username]["ope_cache"]}")
-    print(f"\n{username} context from cache: {sessions[username]["user_cache"]}")
+    print(f"\nOpe context from cache: {sessions[username]['ope_cache']}")
+    print(f"\n{username} context from cache: {sessions[username]['user_cache']}")
 
     convo.append({"role": "user", "parts": [{"text": query}]})
     
