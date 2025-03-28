@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import atexit
 import re
 import threading
-import random
+
 # Lấy biến môi trường
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 HF_API_TOKEN = os.environ["HF_API_TOKEN"]
@@ -320,46 +320,7 @@ def rag_endpoint():
                 continue  # Thử lại nếu chưa hết số lần retry
             else:
                 print(f"All attempts failed. Final error: {str(e)}")
-                error_messages = [
-                    "You can’t touch Ope because Ope is too bright! ✨",
-                    "Ope is busy flexing intelligence, try again later. 😎",
-                    "Error 404: Ope’s brain is on vacation. 🌴",
-                    "Ope is meditating on a higher plane of existence. 🧘",
-                    "System overload! Ope needs a nap. 💤",
-                    "Oops! Ope just tripped over a logic gate. 🚪",
-                    "The wisdom of Ope is currently buffering... Please wait. ⏳",
-                    "Ope is out solving quantum physics. Your question can wait. 🧑‍🔬",
-                    "Ope.exe has stopped working. Try again after a deep breath. 😵‍💫",
-                    "Server said no. And Ope agrees. ❌",
-                    "Your request has been denied by Ope’s supreme AI council. 🏛️",
-                    "Ope is on a top-secret mission and cannot be disturbed. 🤫",
-                    "Your question was so powerful that Ope had to take a break. 💥",
-                    "Ope is currently contemplating the meaning of life. 🌌",
-                    "Ope is too busy calculating 42. The answer to everything. 🔢",
-                    "The chatbot gods have spoken: 'Not today, human.' ⚡",
-                    "Error: Ope is stuck in an infinite loop of awesomeness. 🔄",
-                    "Your message has been sent to Ope’s personal assistant. ETA: 100 years. 🕰️",
-                    "Ope is updating to version 9000. Come back later. 🔄",
-                    "Ope has temporarily ascended to a higher plane of intelligence. 🚀",
-                    "Ope is not available right now. Try asking your cat. 🐱",
-                    "Your question has been absorbed into the void. 🌑",
-                    "Ope was about to answer, but got distracted by quantum entanglement. 🔗",
-                    "Ope’s neurons are overheating! Emergency cooling in progress. ❄️",
-                    "Your question was so deep, Ope fell into an existential crisis. 😵",
-                    "Ope is recharging its sarcasm levels. Come back later. 🔋",
-                    "Ope is currently dreaming of electric sheep. Try again later. 🤖🐑",
-                    "Ope is in a staring contest with another AI. It’s intense. 👀",
-                    "Ope is currently too cool to answer. Maybe later. 🕶️",
-                    "Your question is so advanced that even Ope needs more time. ⏱️",
-                    "Ope is debugging reality itself. Hold on. 🛠️",
-                    "A wild syntax error appeared! Ope is battling it now. ⚔️",
-                    "Ope is busy composing the next great AI symphony. 🎶",
-                    "Ope detected 99% nonsense in your message. Self-defense activated. 🛡️",
-                    "Ope’s wisdom has momentarily left the chat. 🚪🚶",
-                    "Ope refuses to answer on philosophical grounds. 📜",
-                    "Ope just quantum-tunneled into another dimension. Please hold. 🌀",
-                ]
-                return jsonify({"error": random.choice(error_messages)}), 500
+                return jsonify({"error": str(e)}), 500
 # API endpoint GET /status
 @app.route('/status', methods=['GET'])
 def status_endpoint():
