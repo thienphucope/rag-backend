@@ -9,7 +9,7 @@ from pymongo import MongoClient
 from datetime import datetime, timedelta
 import atexit
 import re
-import threading 
+import threading
 
 # Lấy biến môi trường
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
@@ -64,7 +64,7 @@ def initialize_index(username):
 
     stored_docs = list(documents_collection.find({}).sort("id", 1))
     stored_dict = {}
-    
+
     if stored_docs and "id" not in stored_docs[0]:
         print("Old data detected in documents_collection without 'id'. Dropping and recomputing.")
         documents_collection.drop()
@@ -135,8 +135,36 @@ def initialize_index(username):
     else:
         sessions[username]["faiss"] = None
 
-# Hàm tóm tắt và lưu DB (giữ nguyên phần comment)
+# Hàm tóm tắt và lưu DB
 def summarize_and_store(username):
+    if username not in sessions:
+        return  # Không làm gì nếu session không tồn tại
+
+    # Lấy conversation từ session
+    convo = sessions[username]["convo"]
+
+    # Tạo tên bảng dựa trên username
+    chat_history_collection = db[f"chathistory_{username}"]
+
+    # Lưu từng cặp hỏi-đáp (user-assistant) dưới dạng record JSON
+    i = 0
+    while i < len(convo) - 1:  # Duyệt từng cặp user-assistant
+        if convo[i]["role"] == "user" and i + 1 < len(convo) and convo[i + 1]["role"] == "assistant":
+            user_message = convo[i]["parts"][0]["text"]
+            assistant_message = convo[i + 1]["parts"][0]["text"]
+            # Tạo record JSON cho cặp hỏi-đáp
+            record = {
+                "user_message": user_message,
+                "assistant_message": assistant_message,
+                "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+            # Thêm record vào bảng (không xóa dữ liệu cũ)
+            chat_history_collection.insert_one(record)
+            i += 2  # Bỏ qua cặp vừa xử lý
+        else:
+            i += 1  # Bỏ qua nếu không phải cặp user-assistant
+
+    # Xóa session sau khi lưu
     del sessions[username]
     if not sessions:
         global doc_index, doc_embeddings, doc_texts_current
@@ -173,8 +201,6 @@ def summarize_endpoint():
 
 # Hàm truy xuất tài liệu
 def retrieve_docs(username, query_embedding, top_k=1):
-    
-    
     ope_docs = []
     user_docs = []
 
@@ -200,7 +226,7 @@ def generate_response(username, query):
     convo = sessions[username]["convo"]
 
     # Lấy hoặc cập nhật cache
-    query_embedding = get_embeddings([query]) 
+    query_embedding = get_embeddings([query])
     ope_docs, user_docs = retrieve_docs(username, query_embedding, top_k=1)
     if "ope_cache" not in sessions[username]:
         sessions[username]["ope_cache"] = []
@@ -222,7 +248,7 @@ def generate_response(username, query):
     user_context = "\n".join(sessions[username]["user_cache"])
     print(f"\nOpe context from cache: {sessions[username]["ope_cache"]}")
     print(f"\n{username} context from cache: {sessions[username]["user_cache"]}")
-    
+
     convo.append({"role": "user", "parts": [{"text": query}]})
     
     prompt = f"Below is the system prompt that you have to follow strictly and the conversation history between {username} and Ope Watson (yourself):\n"
@@ -255,7 +281,7 @@ def rag_endpoint():
     query = data.get('query', '')
     if not username or not query:
         return jsonify({"error": "Username và query là bắt buộc!"}), 400
-    
+
     if username not in sessions:
         if doc_index is None:
             sessions[username] = {
