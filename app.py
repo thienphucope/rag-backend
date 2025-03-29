@@ -180,22 +180,23 @@ def save_all_sessions():
 
 atexit.register(save_all_sessions)
 
-# API endpoint GET /summarize
+# API endpoint GET /summarize (Đã sửa)
 @app.route('/summarize', methods=['GET'])
 def summarize_endpoint():
-    if not sessions:
-        return jsonify({"message": "No active sessions to summarize"}), 200
+    username = request.args.get('username')  # Lấy username từ query parameter
+    if not username:
+        return jsonify({"error": "Username is required in query parameter!"}), 400
+    
+    if username not in sessions:
+        return jsonify({"message": f"No active session found for username: {username}"}), 200
     
     now = datetime.now()
-    summarized_users = []
-    for username in list(sessions.keys()):
-        summarize_and_store(username)
-        summarized_users.append(username)
+    summarize_and_store(username)
     
-    print(f"Summarized all sessions at {now}")
+    print(f"Summarized session for {username} at {now}")
     return jsonify({
-        "message": f"Summarized {len(summarized_users)} sessions",
-        "summarized_users": summarized_users,
+        "message": f"Summarized session for {username}",
+        "username": username,
         "timestamp": now.strftime('%Y-%m-%d %H:%M:%S')
     }), 200
 
@@ -321,6 +322,7 @@ def rag_endpoint():
             else:
                 print(f"All attempts failed. Final error: {str(e)}")
                 return jsonify({"error": str(e)}), 500
+
 # API endpoint GET /status
 @app.route('/status', methods=['GET'])
 def status_endpoint():
